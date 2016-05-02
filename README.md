@@ -3,9 +3,9 @@ Maven Plugin for the Kola Compiler
 
 ## Usage
 
-Add the following to the <plugins> section in your pom.xml
-```Maven POM
-			<plugin>
+Add the following to the `<plugins>` section in your pom.xml
+```xml
+	<plugin>
                 <inherited>true</inherited>
                 <groupId>se.sics.kola</groupId>
                 <artifactId>kola-maven-plugin</artifactId>
@@ -18,5 +18,5 @@ Add the following to the <plugins> section in your pom.xml
                     <phase>generate-sources</phase>
                   </execution>
                 </executions>
-            </plugin>
+        </plugin>
 ```
