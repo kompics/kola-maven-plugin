@@ -24,6 +24,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -57,7 +59,7 @@ public class KolaMojo extends AbstractMojo {
     /**
      * Target directory for generated Java source files.
      */
-    @Parameter(property = "outputDirectory", defaultValue = "${project.build.directory}/generated-sources")
+    @Parameter(property = "outputDirectory", defaultValue = "${project.build.directory}/generated-sources/kolac")
     private File outputDirectory;
 
     /**
@@ -66,6 +68,9 @@ public class KolaMojo extends AbstractMojo {
     @Parameter(property = "sourceDirectory", defaultValue = "${basedir}/src/main/kola")
     private File sourceDirectory;
 
+    @Parameter(property = "javaSourceDirectory", defaultValue = "${basedir}/src/main/java")
+    private File javaSourceDirectory;
+
     /**
      * Whether to empty the output directory before generation occurs, to clear
      * out all source files
@@ -73,6 +78,12 @@ public class KolaMojo extends AbstractMojo {
      */
     @Parameter(property = "removeOldOutput", defaultValue = "false")
     private boolean removeOldOutput;
+
+    @Parameter(property = "kolac.calcMetrics", defaultValue = "false")
+    private boolean calcMetrics;
+
+    @Parameter(property = "kolac.showDebugPrint", defaultValue = "false")
+    private boolean showDebugPrint;
 
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -95,6 +106,18 @@ public class KolaMojo extends AbstractMojo {
         }
         project.getCompileSourceRoots().clear();
         project.addCompileSourceRoot(outputDirectory.getPath());
+        project.addCompileSourceRoot(javaSourceDirectory.getPath());
+
+        // ******* Java Metrics ********
+        if (this.calcMetrics) {
+            Deque<String> args = new ArrayDeque<String>();
+            args.push(javaSourceDirectory.getPath());
+            args.push(outputDirectory.getPath());
+            args.push("-s");
+            args.push("-M");
+            System.out.println("Enabling Java metrics.");
+            Main.main(args.toArray(new String[args.size()]));
+        }
 
         ClassWorld world = new ClassWorld();
         ClassRealm realm;
@@ -122,9 +145,26 @@ public class KolaMojo extends AbstractMojo {
             throw new MojoExecutionException(e.getMessage(), e);
         }
 
-        Thread.currentThread().setContextClassLoader(realm.getClassLoader()); 
-        
-        Main.main(new String[]{"-s", outputDirectory.getPath(), sourceDirectory.getPath()});
+        Thread.currentThread().setContextClassLoader(realm.getClassLoader());
+
+        // Parse Kola
+        Deque<String> args = new ArrayDeque<String>();
+        args.push(sourceDirectory.getPath());
+        args.push(outputDirectory.getPath());
+        args.push("-s");
+        if (this.showDebugPrint) {
+            args.push("-p");
+            System.out.println("Enabling debug output.");
+        } else {
+            System.out.println("Disabling debug output.");
+        }
+        if (this.calcMetrics) {
+            args.push("-m");
+            System.out.println("Enabling metrics.");
+        } else {
+            System.out.println("Disabling metrics.");
+        }
+        Main.main(args.toArray(new String[args.size()]));
     }
 
 }
